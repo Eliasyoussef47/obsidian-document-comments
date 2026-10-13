@@ -5,6 +5,10 @@ matching the pushed tag as that GitHub release's notes, so add an entry here bef
 
 ## Unreleased
 
+## 0.1.18
+
+- Updated development dependencies (Vitest 5, ESLint, typescript-eslint, `@types/node`, `@codemirror/state`). No change to how the plugin behaves.
+
 ## 0.1.17
 
 - Fixed Reading view showing a whole line's formatting as plain text (`==highlights==`, bold, links and the rest) when a comment starts at the beginning of a paragraph, list item, quote, callout, or footnote. Markdown reads a line that starts with an HTML comment as raw HTML, so the plugin now writes an invisible zero-width space in front of the comment's marker there ([#94](https://github.com/kylemcd/obsidian-document-comments/issues/94)).
