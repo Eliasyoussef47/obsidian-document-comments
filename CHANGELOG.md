@@ -5,6 +5,8 @@ matching the pushed tag as that GitHub release's notes, so add an entry here bef
 
 ## Unreleased
 
+- Fixed comment cards in the inline column that couldn't be scrolled into view on a short note with many comments. The cards stack below the note's last line, and the note had nothing to scroll, so the lowest ones were cut off at the bottom of the pane. In Live Preview, Source, and Reading view the note now scrolls far enough to reach the last card.
+
 ## 0.1.18
 
 - Updated development dependencies (Vitest 5, ESLint, typescript-eslint, `@types/node`, `@codemirror/state`). No change to how the plugin behaves.

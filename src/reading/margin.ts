@@ -18,8 +18,9 @@ import { AnchorDamage, anchorDamage, computeRepairAnchors } from "../editor/anch
 import { syncHighlights } from "./highlight";
 import { highlightsShown } from "../editor/config";
 import { closestSpanId, spanSelector } from "../util/css";
-import { stackTops } from "../ui/stack";
-import { CARD_GAP, FLASH_MS } from "../ui/constants";
+import { stackExtent, stackTops } from "../ui/stack";
+import { ScrollRoom } from "../ui/scroll-room";
+import { CARD_GAP, COLUMN_END_PAD, FLASH_MS } from "../ui/constants";
 import { buildDraftComposer } from "../ui/draft-composer";
 import { EmptySubmitAction } from "../ui/draft-behavior";
 import { authorColorCss, type AuthorColorResolver } from "../author-colors";
@@ -59,6 +60,7 @@ class ReadingMargin {
 	private cb: CardCallbacks;
 	private scrollHandler = () => this.position();
 	private resizeObserver: ResizeObserver;
+	private scrollRoom: ScrollRoom;
 	private animFrames = 0;
 	private animatingLoop = false;
 	private destroyed = false;
@@ -95,6 +97,7 @@ class ReadingMargin {
 			repairAnchor: (id) => void this.edit((doc) => computeRepairAnchors(doc, new Set([id]))),
 		};
 
+		this.scrollRoom = new ScrollRoom(this.scroller);
 		this.scroller.addEventListener("scroll", this.scrollHandler, { passive: true });
 		this.resizeObserver = new ResizeObserver(() => this.position());
 		this.resizeObserver.observe(this.scroller);
@@ -201,6 +204,9 @@ class ReadingMargin {
 		// panel hosts the cards (dc-has is off) and while the column is hidden.
 		this.readingView.toggleClass("dc-highlights", highlightsShown(this.deps));
 		const topRef = this.readingView.getBoundingClientRect().top;
+		// Card tops are measured from the reading view; the scroller's content starts at
+		// the scroller's own top, less however far it has scrolled.
+		const contentOrigin = topRef - this.scroller.getBoundingClientRect().top + this.scroller.scrollTop;
 		// Gather geometry (reads) first, then write every top in one pass — cards are
 		// absolutely positioned, so a top write can't change any height.
 		const placements: Array<{ el: HTMLElement; top: number; height: number }> = [];
@@ -229,6 +235,10 @@ class ReadingMargin {
 		}
 		const tops = stackTops(placements, CARD_GAP);
 		placements.forEach((p, i) => p.el.setCssStyles({ top: `${tops[i]}px` }));
+
+		// Let the note scroll far enough to bring the last stacked card into view.
+		const extent = stackExtent(placements, tops, COLUMN_END_PAD);
+		this.scrollRoom.set(extent === null ? null : extent + contentOrigin);
 	}
 
 	/** Show an inline draft composer for a new comment (Reading-view "Add").
@@ -418,6 +428,7 @@ class ReadingMargin {
 		this.clearDraft();
 		this.scroller.removeEventListener("scroll", this.scrollHandler);
 		this.resizeObserver.disconnect();
+		this.scrollRoom.destroy();
 		this.readingView.removeEventListener("mouseover", this.onMouseOver);
 		this.readingView.removeEventListener("mouseout", this.onMouseOut);
 		this.readingView.removeEventListener("mousedown", this.onMouseDown);

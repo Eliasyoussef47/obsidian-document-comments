@@ -23,3 +23,16 @@ export const stackTops = (placements: Placement[], gap: number): number[] => {
 	}
 	return tops;
 };
+
+/**
+ * How far down a margin column reaches: the lowest card's bottom edge plus `pad`,
+ * in the same coordinates as `tops` (the `stackTops` result for `placements`).
+ * Null when nothing is placed, so an empty column asks its scroller for nothing.
+ */
+export const stackExtent = (placements: Placement[], tops: number[], pad: number): number | null => {
+	let bottom = Number.NEGATIVE_INFINITY;
+	placements.forEach((p, i) => {
+		bottom = Math.max(bottom, (tops[i] ?? 0) + p.height);
+	});
+	return placements.length === 0 ? null : bottom + pad;
+};

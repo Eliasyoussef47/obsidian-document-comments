@@ -154,3 +154,27 @@ describe("unshifted text", () => {
 		expect(rule).toContain("calc(100% - var(--dc-margin-width))");
 	});
 });
+
+describe("scroll room", () => {
+	// The marker that lets a short note scroll to its last stacked card is absolutely
+	// positioned, so it widens the scroller's scrollable area without taking layout.
+	test("is an invisible, click-through absolute marker", () => {
+		const rule = /\.dc-scroll-room\s*\{([^}]*)\}/.exec(styles)?.[1] ?? "";
+
+		expect(rule).toContain("position: absolute");
+		expect(rule).toContain("visibility: hidden");
+		expect(rule).toContain("pointer-events: none");
+	});
+
+	test("positions the Reading view scroller so the marker's top counts from its content", () => {
+		const rule = /\.markdown-reading-view\.dc-margin \.markdown-preview-view\s*\{([^}]*)\}/.exec(styles)?.[1] ?? "";
+
+		expect(rule).toContain("position: relative");
+	});
+
+	test("does not animate a card's top, which would make it lag the scroll", () => {
+		const rule = /\.doc-comment-card\s*\{([^}]*)\}/.exec(styles)?.[1] ?? "";
+
+		expect(rule).toMatch(/transition: transform 120ms ease, box-shadow 120ms ease;/);
+	});
+});
