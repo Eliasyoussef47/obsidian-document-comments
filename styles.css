@@ -161,6 +161,22 @@ body.document-comments-no-shift .markdown-reading-view.dc-has .markdown-preview-
 	pointer-events: none;
 	z-index: var(--layer-popover, 30);
 }
+/* Scroll room: a 1px marker at the column's bottom edge (placed by ScrollRoom) so a
+   short note can still be scrolled far enough to reach its last stacked card. Absolute,
+   so it widens the scroller's scrollable area without joining the note's layout.
+   CodeMirror's scroller is already positioned; the reading view's has to be, so the
+   marker's `top` counts from the scroller's content. */
+.dc-scroll-room {
+	position: absolute;
+	left: 0;
+	width: 1px;
+	height: 1px;
+	visibility: hidden;
+	pointer-events: none;
+}
+.markdown-reading-view.dc-margin .markdown-preview-view {
+	position: relative;
+}
 /* Pin the column right after the readable-width text (CSS-only, so it never
    jumps on focus). Clamped so it can't push off the right edge on narrow panes.
    Keyed on the container's dc-has (set on .cm-editor / .markdown-reading-view). */

@@ -23,8 +23,9 @@ import {
 	toggleReaction,
 } from "./commands";
 import { closestSpanId, spanSelector } from "../util/css";
-import { stackTops } from "../ui/stack";
-import { CARD_GAP, FLASH_MS } from "../ui/constants";
+import { stackExtent, stackTops } from "../ui/stack";
+import { ScrollRoom } from "../ui/scroll-room";
+import { CARD_GAP, COLUMN_END_PAD, FLASH_MS } from "../ui/constants";
 import { buildDraftComposer } from "../ui/draft-composer";
 import { EmptySubmitAction } from "../ui/draft-behavior";
 
@@ -52,6 +53,7 @@ class MarginView implements PluginValue {
 	private cb: CardCallbacks;
 	private scrollHandler = () => this.requestReposition();
 	private resizeObserver: ResizeObserver;
+	private scrollRoom: ScrollRoom;
 	private animFrames = 0;
 	private animatingLoop = false;
 	private destroyed = false;
@@ -98,6 +100,7 @@ class MarginView implements PluginValue {
 			repairAnchor: (id) => notifyErr(repairAnchors(view, new Set([id]))),
 		};
 
+		this.scrollRoom = new ScrollRoom(view.scrollDOM);
 		view.scrollDOM.addEventListener("scroll", this.scrollHandler, { passive: true });
 		this.resizeObserver = new ResizeObserver(() => this.requestReposition());
 		this.resizeObserver.observe(view.scrollDOM);
@@ -151,6 +154,7 @@ class MarginView implements PluginValue {
 		this.view.contentDOM.removeEventListener("mouseout", this.onContentMouseOut);
 		this.view.contentDOM.removeEventListener("mousemove", this.onContentMouseMove);
 		this.removeDraftOutside();
+		this.scrollRoom.destroy();
 		for (const card of this.cards.values()) card.destroy();
 		this.cards.clear();
 		this.container.remove();
@@ -229,6 +233,10 @@ class MarginView implements PluginValue {
 		this.syncDraftEl(draft);
 
 		const editorTop = this.view.dom.getBoundingClientRect().top;
+		const { scrollDOM } = this.view;
+		// Card tops are measured from the editor; the scroller's content starts at the
+		// scroller's own top, less however far it has scrolled.
+		const contentOrigin = editorTop - scrollDOM.getBoundingClientRect().top + scrollDOM.scrollTop;
 		// Gather geometry (reads) first, then write every top in one pass — cards are
 		// absolutely positioned, so a top write can't change any height.
 		const placements: Array<{ el: HTMLElement; top: number; height: number }> = [];
@@ -274,6 +282,11 @@ class MarginView implements PluginValue {
 
 		const tops = stackTops(placements, CARD_GAP);
 		placements.forEach((p, i) => p.el.setCssStyles({ top: `${tops[i]}px` }));
+
+		// A short note with many stacked cards has nothing to scroll while the cards
+		// run past the viewport, so make the scroller reach the last card's bottom edge.
+		const extent = stackExtent(placements, tops, COLUMN_END_PAD);
+		this.scrollRoom.set(extent === null ? null : extent + contentOrigin);
 	}
 
 	/** Create/remove the transient "new comment" composer card. */

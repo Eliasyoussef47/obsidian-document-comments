@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { stackTops } from "../src/ui/stack";
+import { stackExtent, stackTops } from "../src/ui/stack";
 
 describe("stackTops", () => {
 	test("returns tops in the original input order", () => {
@@ -50,5 +50,42 @@ describe("stackTops", () => {
 		);
 		// sorted anchors 0, 50, 100 → 0, 50, 100 (none overlaps the previous + gap)
 		expect(tops).toEqual([100, 0, 50]);
+	});
+});
+
+describe("stackExtent", () => {
+	test("is null when no card is placed, so an empty column asks for no scroll room", () => {
+		expect(stackExtent([], [], 16)).toBeNull();
+	});
+
+	test("reaches the lowest card's bottom edge plus the padding", () => {
+		const placements = [
+			{ top: 0, height: 40 },
+			{ top: 10, height: 100 },
+		];
+		// Stacked at 0 and 48: the second card ends at 148.
+		expect(stackExtent(placements, stackTops(placements, 8), 16)).toBe(164);
+	});
+
+	test("uses the lowest bottom edge whatever the input order", () => {
+		// Resolved tops are given in input order: the tall card ends at 300, the short one at 110.
+		const placements = [
+			{ top: 0, height: 300 },
+			{ top: 20, height: 10 },
+		];
+		expect(stackExtent(placements, [0, 100], 0)).toBe(300);
+		expect(stackExtent(placements.toReversed(), [100, 0], 0)).toBe(300);
+	});
+
+	test("counts a stack that sits above the viewport top", () => {
+		const placements = [{ top: -500, height: 40 }];
+		expect(stackExtent(placements, stackTops(placements, 8), 16)).toBe(-444);
+	});
+
+	test("is unchanged by hidden cards, which are never placed", () => {
+		// Cards with no height (resolved, hidden) and off-screen anchors are filtered out
+		// before stacking, so the extent is that of the placed cards alone.
+		const shown = [{ top: 0, height: 60 }];
+		expect(stackExtent(shown, stackTops(shown, 8), 16)).toBe(76);
 	});
 });
